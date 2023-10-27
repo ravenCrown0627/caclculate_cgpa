@@ -3,17 +3,15 @@ import com.opencsv.exceptions.CsvValidationException;
 
 import java.io.*;
 import java.util.Objects;
-import org.apache.commons.io.output.TeeOutputStream;
-
 
 public class CalculateCGPA {
     static String error_code;
     static String error_msg;
-    static final int SEMESTER_NUM   = 8;
+    static final int SEMESTER_NUM = 8;
     static final int MAX_COURSE_NUM = 10;
     static final int STUDENT_NUM = 5;
 
-    static String [][] course_code   = new String[SEMESTER_NUM][MAX_COURSE_NUM];
+    static String [][] course_code = new String[SEMESTER_NUM][MAX_COURSE_NUM];
     static String [][] course_credit = new String[SEMESTER_NUM][MAX_COURSE_NUM];
     static float [][] student_result = new float[SEMESTER_NUM][MAX_COURSE_NUM];
     static String [] student_name = new String[STUDENT_NUM];
@@ -70,7 +68,7 @@ public class CalculateCGPA {
     }
 
     private static boolean check_file_path() {
-        boolean status = true;
+        boolean status;
 
         status = is_csv_file(student_name_file_path);
         if (status) {
@@ -83,7 +81,8 @@ public class CalculateCGPA {
                     for (String file_path : student_result_file_path) {
                         status = is_csv_file(file_path);
 
-                        if (!status) break;
+                        if (!status)
+                            break;
                     }
                 }
             }
@@ -220,6 +219,10 @@ public class CalculateCGPA {
                             }
 
                             student_result[semester_idx][course_idx] = Float.parseFloat(val);
+
+                            // Modify the point to 0.0 if it is less than 1.000
+                            if (student_result[semester_idx][course_idx] < 1.000)
+                                student_result[semester_idx][course_idx] = 0;
                         } catch (NumberFormatException e ) {
                             status = false;
                             error_module("E002");
@@ -288,45 +291,100 @@ public class CalculateCGPA {
             FileOutputStream fos = new FileOutputStream(output_file_path);
 
             // Redirect standard output to the file
-            TeeOutputStream teeOutputStream = new TeeOutputStream(System.out, fos);
-            PrintStream ps = new PrintStream(fos);
-            System.setOut(ps);
+            PrintStream console_out = System.out;
+            PrintStream file_out = new PrintStream(fos);
+            System.setOut(file_out);
 
-            System.out.println("Name: " + student_name[student_idx]);
+            // Display on console
+            console_out.println("Name: " + student_name[student_idx]);
+            // Print to file
+            file_out.println("Name: " + student_name[student_idx]);
 
             for (int i = 0; i < SEMESTER_NUM; i++) {
-                System.out.println("Semester " + (i + 1));
-                System.out.println("==========================================================");
-                System.out.printf("%-15s %-15s %-10s %-15s%n", "Course Code", "Credit Hour", "Grade", "Grade Value");
-                System.out.println("==========================================================");
+                // Display on console
+                console_out.println("Semester " + (i + 1));
+                console_out.println("==========================================================");
+                console_out.printf("%-15s %-15s %-10s %-15s%n", "Course Code", "Credit Hour", "Grade", "Grade Value");
+                console_out.println("==========================================================");
+                // Print to file
+                file_out.println("Semester " + (i + 1));
+                file_out.println("==========================================================");
+                file_out.printf("%-15s %-15s %-10s %-15s%n", "Course Code", "Credit Hour", "Grade", "Grade Value");
+                file_out.println("==========================================================");
 
                 for (int j = 0; j < course_code.length; j++) {
                     if (course_code[i][j] != null) {
-                        System.out.printf("%-15s %-15s %-10s %.2f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
+                        // Display on console
+                        console_out.printf("%-15s %-15s %-10s %.2f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
+                        // Print to file
+                        file_out.printf("%-15s %-15s %-10s %.2f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
                     }
                 }
-                System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-                System.out.printf("%-38s GPA:%.2f%n", "" ,student_gpa[i]);
-                System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+
+                // Display on console
+                console_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                console_out.printf("%-38s GPA:%.2f%n", "" ,student_gpa[i]);
+                console_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+                // Print to file
+                file_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+                file_out.printf("%-38s GPA:%.2f%n", "" ,student_gpa[i]);
+                file_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
             }
 
             fos.close();
+            // Close the file of PrintStream
+            file_out.close();
+            // Reset the System.out ro original PrintStream for terminal
+            System.setOut(console_out);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static void print_summary_result(int student_idx) {
-        System.out.println("==============================================");
-        System.out.printf("%-12s %-12s %-10s %-10s%n", "Semester", "Credit Hour", "Grade", "GPA");
-        System.out.println("==============================================");
+        String output_file_path = "csv//output//" + student_name[student_idx] + "_semester_detail_output.txt";
 
-        for (int i = 0; i < SEMESTER_NUM; i++) {
-            System.out.printf("%-12s %-12s %-10s %.2f%n", (i + 1), semester_total_credit[i], generate_grade(student_gpa[i]), student_gpa[i]);
+        try {
+            // Create a FileOutputStream to write to the file
+            FileOutputStream fos = new FileOutputStream(output_file_path, true);
+
+            // Redirect standard output to the file
+            PrintStream console_out = System.out;
+            PrintStream file_out = new PrintStream(fos);
+            System.setOut(file_out);
+
+            // Display on console
+            console_out.println("==============================================");
+            console_out.printf("%-12s %-12s %-10s %-10s%n", "Semester", "Credit Hour", "Grade", "GPA");
+            console_out.println("==============================================");
+            // Print to file
+            file_out.println("==============================================");
+            file_out.printf("%-12s %-12s %-10s %-10s%n", "Semester", "Credit Hour", "Grade", "GPA");
+            file_out.println("==============================================");
+
+            for (int i = 0; i < SEMESTER_NUM; i++) {
+                // Display on console
+                console_out.printf("%-12s %-12s %-10s %.2f%n", (i + 1), semester_total_credit[i], generate_grade(student_gpa[i]), student_gpa[i]);
+                // Print to file
+                file_out.printf("%-12s %-12s %-10s %.2f%n", (i + 1), semester_total_credit[i], generate_grade(student_gpa[i]), student_gpa[i]);
+            }
+
+            // Display on console
+            console_out.println("++++++++++++++++++++++++++++++++++++++++++++++");
+            console_out.printf("%-31s CGPA:%.2f%n", "" ,student_cgpa[student_idx]);
+            console_out.println("++++++++++++++++++++++++++++++++++++++++++++++\n");
+            // Print to file
+            file_out.println("++++++++++++++++++++++++++++++++++++++++++++++");
+            file_out.printf("%-31s CGPA:%.2f%n", "" ,student_cgpa[student_idx]);
+            file_out.println("++++++++++++++++++++++++++++++++++++++++++++++");
+
+            fos.close();
+            // Close the file of PrintStream
+            file_out.close();
+            // Reset the System.out ro original PrintStream for terminal
+            System.setOut(console_out);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
-        System.out.println("++++++++++++++++++++++++++++++++++++++++++++++");
-        System.out.printf("%-31s CGPA:%.2f%n", "" ,student_cgpa[student_idx]);
-        System.out.println("++++++++++++++++++++++++++++++++++++++++++++++\n");
     }
 }
