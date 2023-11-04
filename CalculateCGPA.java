@@ -7,9 +7,9 @@ import java.util.Objects;
 public class CalculateCGPA {
     static String error_code;
     static String error_msg;
-    static final int SEMESTER_NUM = 8;
+    static final int SEMESTER_NUM   = 8;
     static final int MAX_COURSE_NUM = 10;
-    static final int STUDENT_NUM = 5;
+    static final int STUDENT_NUM    = 5;
 
     static String [][] course_code = new String[SEMESTER_NUM][MAX_COURSE_NUM];
     static String [][] course_credit = new String[SEMESTER_NUM][MAX_COURSE_NUM];
@@ -20,9 +20,7 @@ public class CalculateCGPA {
     static int [] semester_total_credit = new int[SEMESTER_NUM];
     static float [] student_cgpa = new float [STUDENT_NUM];
 
-    static String student_name_file_path =  "csv\\student_name.csv";
-    static String course_code_file_path = "csv\\course_code.csv";
-    static String course_credit_file_path = "csv\\course_credit_hour.csv";
+    static String course_info_file_path = "csv\\course_info.csv";
     static String [] student_result_file_path = {
         "csv\\zhilin_result.csv",
         "csv\\yewy_result.csv",
@@ -32,30 +30,24 @@ public class CalculateCGPA {
     };
 
     public static void main(String [] args) {
-        int student_idx = 0;
-
         if (check_file_path()) {
-            parse_course_info(course_code_file_path, course_code);
-            parse_course_info(course_credit_file_path, course_credit);
-            parse_student_name(student_name_file_path);
+            parse_course_info(course_info_file_path);
 
-            for (String student_result_file : student_result_file_path) {
-                if (parse_student_result(student_result_file)) {
+            for (int student_idx = 0; student_idx < STUDENT_NUM; student_idx++) {
+                if (parse_student_result(student_result_file_path[student_idx], student_idx)) {
                     calc_gpa();
                     calc_cgpa(student_idx);
 
                     print_result(student_idx);
                     print_summary_result(student_idx);
-                    student_idx++;
                 }
-                else break;
+                else
+                    break;
             }
         }
 
         if (error_code != null)
             System.out.println(error_msg);
-        else
-            System.out.println("Success");
     }
 
     private static boolean is_csv_file(String file_path) {
@@ -68,22 +60,13 @@ public class CalculateCGPA {
     }
 
     private static boolean check_file_path() {
-        boolean status;
+        boolean status = is_csv_file(course_info_file_path);
 
-        status = is_csv_file(student_name_file_path);
         if (status) {
-            status = is_csv_file(course_code_file_path);
-
-            if (status) {
-                status = is_csv_file(course_credit_file_path);
-
-                if (status) {
-                    for (String file_path : student_result_file_path) {
-                        status = is_csv_file(file_path);
-
-                        if (!status)
-                            break;
-                    }
+            for (String file_path : student_result_file_path) {
+                if (!is_csv_file(file_path)) {
+                    status = false;
+                    break;
                 }
             }
         }
@@ -148,16 +131,26 @@ public class CalculateCGPA {
         }
     }
 
-    public static void parse_course_info(String course_info_csv_path, String [][] course_container) {
-        String[] nextLine;
+    public static void parse_course_info(String course_info_csv_path) {
+        String[] next_line;
+        String [][] course_container = course_code;
         int semester_idx = 0;
         int course_idx = 0;
+        int line_idx = 0;
 
         try (CSVReader reader = new CSVReader(new FileReader(course_info_csv_path))) {
             try {
-                while ((nextLine = reader.readNext()) != null) {
-                    // nextLine is an array of values from the line
-                    for (String val : nextLine) {
+                while ((next_line = reader.readNext()) != null) {
+                    // switching the container to store the course code and course credit interleave
+                    if (line_idx % 2 == 0) {
+                        course_container = course_code;
+                    }
+                    else {
+                        course_container = course_credit;
+                    }
+
+                    // next_line is an array of values from the line
+                    for (String val : next_line) {
                         if (val.startsWith("\uFEFF")) {
                             val = val.substring(1); // Remove the BOM
                         }
@@ -165,7 +158,11 @@ public class CalculateCGPA {
                         course_container[semester_idx][course_idx] = val;
                         ++course_idx;
                     }
-                    ++semester_idx;
+
+                    if (line_idx % 2 != 0)
+                        ++semester_idx;
+
+                    ++line_idx;
                     course_idx = 0;
                 }
             } catch (IOException | CsvValidationException e) {
@@ -176,48 +173,24 @@ public class CalculateCGPA {
         }
     }
 
-    public static void parse_student_name(String student_name_csv_path) {
-        String[] nextLine;
-        int student_idx = 0;
-
-        try (CSVReader reader = new CSVReader(new FileReader(student_name_csv_path))) {
-            try {
-                while ((nextLine = reader.readNext()) != null) {
-                    // nextLine is an array of values from the line
-                    for (String val : nextLine) {
-                        if (val.startsWith("\uFEFF")) {
-                            val = val.substring(1); // Remove the BOM
-                        }
-
-                        student_name[student_idx] = val;
-                    }
-
-                    ++student_idx;
-                }
-            } catch (IOException | CsvValidationException e) {
-                throw new RuntimeException(e);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static boolean parse_student_result(String student_result_csv_path) {
+    public static boolean parse_student_result(String student_result_csv_path, final int student_idx) {
         boolean status = true;
-        String[] nextLine;
+        String[] next_line;
         int semester_idx = 0;
         int course_idx = 0;
 
         try (CSVReader reader = new CSVReader(new FileReader(student_result_csv_path))) {
             try {
-                while ((nextLine = reader.readNext()) != null) {
-                    // nextLine is an array of values from the line
-                    for (String val : nextLine) {
-                        try {
-                            if (val.startsWith("\uFEFF")) {
-                                val = val.substring(1); // Remove the BOM
-                            }
+                while ((next_line = reader.readNext()) != null) {
+                    // Only the first line has BOM char and contain the student name
+                    if (next_line[0].startsWith("\uFEFF")) {
+                        student_name[student_idx] = next_line[0].substring(1);
+                        continue;
+                    }
 
+                    // next_line is an array of values from the line
+                    for (String val : next_line) {
+                        try {
                             student_result[semester_idx][course_idx] = Float.parseFloat(val);
 
                             // Modify the point to 0.0 if it is less than 1.000
@@ -238,9 +211,8 @@ public class CalculateCGPA {
                         ++semester_idx;
                         course_idx = 0;
                     }
-                    else {
+                    else
                         break;
-                    }
                 }
             } catch (IOException | CsvValidationException e) {
                 throw new RuntimeException(e);
@@ -315,19 +287,19 @@ public class CalculateCGPA {
                 for (int j = 0; j < course_code.length; j++) {
                     if (course_code[i][j] != null) {
                         // Display on console
-                        console_out.printf("%-15s %-15s %-10s %.2f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
+                        console_out.printf("%-15s %-15s %-10s %.3f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
                         // Print to file
-                        file_out.printf("%-15s %-15s %-10s %.2f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
+                        file_out.printf("%-15s %-15s %-10s %.3f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
                     }
                 }
 
                 // Display on console
                 console_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-                console_out.printf("%-38s GPA:%.2f%n", "" ,student_gpa[i]);
+                console_out.printf("%-22s    GPA:  %-10s %.3f%n", "" , generate_grade(student_gpa[i]), student_gpa[i]);
                 console_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
                 // Print to file
                 file_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-                file_out.printf("%-38s GPA:%.2f%n", "" ,student_gpa[i]);
+                file_out.printf("%-22s    GPA:  %-10s %.3f%n", "", generate_grade(student_gpa[i]), student_gpa[i]);
                 file_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
             }
 
@@ -364,18 +336,18 @@ public class CalculateCGPA {
 
             for (int i = 0; i < SEMESTER_NUM; i++) {
                 // Display on console
-                console_out.printf("%-12s %-12s %-10s %.2f%n", (i + 1), semester_total_credit[i], generate_grade(student_gpa[i]), student_gpa[i]);
+                console_out.printf("%-12s %-12s %-10s %.3f%n", (i + 1), semester_total_credit[i], generate_grade(student_gpa[i]), student_gpa[i]);
                 // Print to file
-                file_out.printf("%-12s %-12s %-10s %.2f%n", (i + 1), semester_total_credit[i], generate_grade(student_gpa[i]), student_gpa[i]);
+                file_out.printf("%-12s %-12s %-10s %.3f%n", (i + 1), semester_total_credit[i], generate_grade(student_gpa[i]), student_gpa[i]);
             }
 
             // Display on console
             console_out.println("++++++++++++++++++++++++++++++++++++++++++++++");
-            console_out.printf("%-31s CGPA:%.2f%n", "" ,student_cgpa[student_idx]);
+            console_out.printf("%-16s   CGPA:  %-10s %.3f%n", "", generate_grade(student_cgpa[student_idx]), student_cgpa[student_idx]);
             console_out.println("++++++++++++++++++++++++++++++++++++++++++++++\n");
             // Print to file
             file_out.println("++++++++++++++++++++++++++++++++++++++++++++++");
-            file_out.printf("%-31s CGPA:%.2f%n", "" ,student_cgpa[student_idx]);
+            file_out.printf("%-16s   CGPA:  %-10s %.3f%n", "", generate_grade(student_cgpa[student_idx]), student_cgpa[student_idx]);
             file_out.println("++++++++++++++++++++++++++++++++++++++++++++++");
 
             fos.close();
