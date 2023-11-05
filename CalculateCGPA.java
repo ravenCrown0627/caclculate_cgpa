@@ -20,17 +20,17 @@ public class CalculateCGPA {
     static int [] semester_total_credit = new int[SEMESTER_NUM];
     static float [] student_cgpa = new float [STUDENT_NUM];
 
-    static String course_info_file_path = "csv\\course_info.csv";
-    static String [] student_result_file_path = {
-        "csv\\zhilin_result.csv",
-        "csv\\yewy_result.csv",
-        "csv\\tabina_result.csv",
-        "csv\\shisilia_result.csv",
-        "csv\\hasif_result.csv"
-    };
-
     public static void main(String [] args) {
-        if (check_file_path()) {
+        String course_info_file_path = "csv\\course_info.csv";
+        String [] student_result_file_path = {
+                "csv\\zhilin_result.csv",
+                "csv\\yewy_result.csv",
+                "csv\\tabina_result.csv",
+                "csv\\shisilia_result.csv",
+                "csv\\hasif_result.csv"
+        };
+
+        if (check_file_path(course_info_file_path, student_result_file_path)) {
             parse_course_info(course_info_file_path);
 
             for (int student_idx = 0; student_idx < STUDENT_NUM; student_idx++) {
@@ -48,6 +48,8 @@ public class CalculateCGPA {
 
         if (error_code != null)
             System.out.println(error_msg);
+        else
+            System.out.println("Success");
     }
 
     private static boolean is_csv_file(String file_path) {
@@ -59,7 +61,7 @@ public class CalculateCGPA {
         return status;
     }
 
-    private static boolean check_file_path() {
+    private static boolean check_file_path(String course_info_file_path, String [] student_result_file_path) {
         boolean status = is_csv_file(course_info_file_path);
 
         if (status) {
@@ -74,15 +76,15 @@ public class CalculateCGPA {
         return status;
     }
 
-    private static int [] convert_str_to_int(String [][] array, int row_idx) {
-        int [] int_array = new int[array[row_idx].length];
+    private static int [] convert_str_to_int(String [][] str_array, final int row_idx) {
+        int [] int_array = new int[str_array[row_idx].length];
 
         // Convert String to int
-        for (int k = 0; k < array[row_idx].length; k++) {
-            String temp_str = array[row_idx][k];
+        for (int i = 0; i < int_array.length; ++i) {
+            String temp_str = str_array[row_idx][i];
 
             if (temp_str != null)
-                int_array[k] = Integer.parseInt(temp_str);
+                int_array[i] = Integer.parseInt(temp_str);
             else
                 break;
         }
@@ -127,13 +129,13 @@ public class CalculateCGPA {
             error_msg = "There is an error file type";
         }
         else if (Objects.equals(error_code, "E002")) {
-            error_msg = "The data in the student result has invalid data (Check for the BOM elimination)";
+            error_msg = "The data in the student result has invalid data";
         }
     }
 
     public static void parse_course_info(String course_info_csv_path) {
-        String[] next_line;
-        String [][] course_container = course_code;
+        String [] next_line;
+        String [][] course_container;
         int semester_idx = 0;
         int course_idx = 0;
         int line_idx = 0;
@@ -225,14 +227,14 @@ public class CalculateCGPA {
     }
 
     public static void calc_gpa() {
-        for (int i = 0; i < SEMESTER_NUM; i++) {
+        for (int i = 0; i < SEMESTER_NUM; ++i) {
+            int [] credit;
             float temp_sum_grade = 0;
             int sum_credit = 0;
-            int [] credit;
 
             credit = convert_str_to_int(course_credit, i);
 
-            for (int j = 0; j < student_result[i].length; j++) {
+            for (int j = 0; j < student_result[i].length; ++j) {
                 temp_sum_grade += credit[j] * student_result[i][j];
                 sum_credit += credit[j];
             }
@@ -243,7 +245,7 @@ public class CalculateCGPA {
         }
     }
 
-    public static void calc_cgpa(int student_idx) {
+    public static void calc_cgpa(final int student_idx) {
         float sum_grade_result = 0;
         int sum_credit_result = 0;
 
@@ -255,16 +257,16 @@ public class CalculateCGPA {
         student_cgpa[student_idx] = sum_grade_result / sum_credit_result;
     }
 
-    public static void print_result(int student_idx) {
+    public static void print_result(final int student_idx) {
         String output_file_path = "csv//output//" + student_name[student_idx] + "_semester_detail_output.txt";
 
         try {
             // Create a FileOutputStream to write to the file
             FileOutputStream fos = new FileOutputStream(output_file_path);
-
-            // Redirect standard output to the file
+            // Redirect standard output to the terminal
             PrintStream console_out = System.out;
-            PrintStream file_out = new PrintStream(fos);
+            // Write the content to the file
+            PrintStream file_out = new PrintStream(output_file_path);
             System.setOut(file_out);
 
             // Display on console
@@ -272,7 +274,7 @@ public class CalculateCGPA {
             // Print to file
             file_out.println("Name: " + student_name[student_idx]);
 
-            for (int i = 0; i < SEMESTER_NUM; i++) {
+            for (int i = 0; i < SEMESTER_NUM; ++i) {
                 // Display on console
                 console_out.println("Semester " + (i + 1));
                 console_out.println("==========================================================");
@@ -284,7 +286,7 @@ public class CalculateCGPA {
                 file_out.printf("%-15s %-15s %-10s %-15s%n", "Course Code", "Credit Hour", "Grade", "Grade Value");
                 file_out.println("==========================================================");
 
-                for (int j = 0; j < course_code.length; j++) {
+                for (int j = 0; j < course_code.length; ++j) {
                     if (course_code[i][j] != null) {
                         // Display on console
                         console_out.printf("%-15s %-15s %-10s %.3f%n", course_code[i][j], course_credit[i][j], generate_grade(student_result[i][j]), student_result[i][j]);
@@ -303,6 +305,7 @@ public class CalculateCGPA {
                 file_out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
             }
 
+            // Close the file of FileStream
             fos.close();
             // Close the file of PrintStream
             file_out.close();
@@ -313,17 +316,17 @@ public class CalculateCGPA {
         }
     }
 
-    public static void print_summary_result(int student_idx) {
+    public static void print_summary_result(final int student_idx) {
         String output_file_path = "csv//output//" + student_name[student_idx] + "_semester_detail_output.txt";
 
         try {
-            // Create a FileOutputStream to write to the file
+            // Create a FileOutputStream to write to the file in append mode
             FileOutputStream fos = new FileOutputStream(output_file_path, true);
 
             // Redirect standard output to the file
             PrintStream console_out = System.out;
+            // Write the content to the file
             PrintStream file_out = new PrintStream(fos);
-            System.setOut(file_out);
 
             // Display on console
             console_out.println("==============================================");
@@ -350,6 +353,7 @@ public class CalculateCGPA {
             file_out.printf("%-16s   CGPA:  %-10s %.3f%n", "", generate_grade(student_cgpa[student_idx]), student_cgpa[student_idx]);
             file_out.println("++++++++++++++++++++++++++++++++++++++++++++++");
 
+            // Close the file of FileStream
             fos.close();
             // Close the file of PrintStream
             file_out.close();
