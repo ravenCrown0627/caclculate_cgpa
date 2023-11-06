@@ -5,6 +5,43 @@ The flowchart for the main() is shown in the figure below.
 **Flowchart for main()**
 ![Flowchart](flowchart/CalculateCGPA-main().png)
 
+## Environment
+- **IDE**: IntelliJ IDEA 2023.2.3 Ultimate Edition
+- **JDK (Java Development Kit)**: Version 20.0.2
+- **Build Tool**: Maven
+
+## Dependencies
+The following external libraries are included in this repository:
+- [OpenCSV](https://github.com/opencsv/opencsv) - Version 5.8
+- [Commons IO](https://commons.apache.org/proper/commons-io/) - Version 2.14.0
+
+### Usage of Included Libraries
+These libraries have been included in the `lib` or a similar directory within this repository, allowing you to use them without the need for external downloads or configurations. You can find these libraries in the following directories:
+
+- `lib/opencsv-5.8.jar` for OpenCSV.
+- `lib/commons-io-2.14.0.jar` for Commons IO.
+
+### Maven Configuration (Optional)
+If you prefer to manage these libraries using Maven, you can update your `pom.xml` as follows:
+
+```xml
+<dependencies>
+    <!-- OpenCSV -->
+    <dependency>
+        <groupId>com.opencsv</groupId>
+        <artifactId>opencsv</artifactId>
+        <version>5.8</version>
+    </dependency>
+    
+    <!-- Commons IO -->
+    <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>2.14.0</version>
+    </dependency>
+</dependencies>
+```
+
 ### :warning: Test Case Coverage Notice :warning:
 
 **Please Note:** The current test case coverage for this project is relatively low. While I have made efforts to ensure the code's correctness and functionality, there may be untested scenarios or edge cases.
